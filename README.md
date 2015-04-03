@@ -1,4 +1,4 @@
-# react-native-sqlite3
+# react-native-sqlite
 
 A binding for sqlite3 for React Native. Allows a database to be oppened and for SQL queries to be run on it.
 
