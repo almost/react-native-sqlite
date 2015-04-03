@@ -55,6 +55,16 @@ sqlite.open("filename.sqlite", function (error, database) {
 });
 ```
 
+## Know Issues
+
+- I'm using events on RCTDeviceEventEmitter to pass back rows from
+  queries, is this the best way to do it?
+- Doesn't supporting reading of BLOB fields right now. I'm not entirely sure what
+  would be the best way to pass back binary data. Maybe Base64?
+- Database needs to be closed manually. I'm not sure how I could do
+  this automatically.
+
+
 ## Feedback Welcome!
 
 Feedback, questions, suggestions and most of all Pull Requests are
