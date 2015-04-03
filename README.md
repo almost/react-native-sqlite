@@ -33,6 +33,7 @@ sqlite.open("filename.sqlite", function (error, database) {
   }
   var sql = "SELECT a, b FROM table WHERE field=? AND otherfield=?";
   var params = ["somestring", 99];
+  database.executeSQL(sql, params, rowCallback, completeCallback);
   function rowCallback(rowData) {
     console.log("Got row data:", rowData);
   }
@@ -51,7 +52,6 @@ sqlite.open("filename.sqlite", function (error, database) {
   }
     console.log("Got row data:", rowData);
   }
-  database.executeSQL(sql, params, rowCallback, completeCallback);
 });
 ```
 
