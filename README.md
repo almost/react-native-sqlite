@@ -53,7 +53,7 @@ sqlite.open("filename.sqlite", function (error, database) {
 });
 ```
 
-## Know Issues
+## Known Issues
 
 - I'm using events on RCTDeviceEventEmitter to pass back rows from
   queries, is this the best way to do it?
