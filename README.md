@@ -73,6 +73,6 @@ I'm also available for freelance work!
 
 I'm [@almostobsolete](http://twitter.com/almostobsolete) on Twitter my
 email is [tom@almostobsolete.net](mailto:tom@almostobsolete.net) and
-you can find my on the web at
+you can find me on the web at
 [tomparslow.co.uk](http://tomparslow.co.uk) and
 [almostobsolete.net](http://almostobsolete.net)
