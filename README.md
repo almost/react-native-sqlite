@@ -71,6 +71,8 @@ Feedback, questions, suggestions and most of all Pull Requests are
 very welcome. This is an early version and I want to figure out the
 best way to continue it.
 
+I'm also available for freelance work!
+
 I'm [@almostobsolete](http://twitter.com/almostobsolete) on Twitter my
 email is [tom@almostobsolete.net](mailto:tom@almostobsolete.net) and
 you can find my on the web at
