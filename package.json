@@ -1,6 +1,6 @@
 {
   "name": "react-native-sqlite",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "SQLite3 bindings for React Native",
   "main": "sqlite3.ios.js",
   "scripts": {
