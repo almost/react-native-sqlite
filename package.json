@@ -11,10 +11,12 @@
     "url": "https://github.com/almost/react-native-sqlite3.git"
   },
   "keywords": [
+    "react-component",
     "reactnative",
     "react-native",
     "sqlite",
-    "sqlite3"
+    "sqlite3",
+    "ios"
   ],
   "author": "Thomas Parslow",
   "license": "MIT",
