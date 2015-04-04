@@ -50,8 +50,6 @@ sqlite.open("filename.sqlite", function (error, database) {
       }
     });
   }
-    console.log("Got row data:", rowData);
-  }
 });
 ```
 
