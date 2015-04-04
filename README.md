@@ -53,6 +53,12 @@ sqlite.open("filename.sqlite", function (error, database) {
 });
 ```
 
+## Database Location
+
+It will first look for the database filename you give in the Documents directory inside the app sandbox. If it doesn't find anything there it will look in the app bundle and try and copy it to the Documents directory. If it doesn't find the database in either places then it will create a new blank database in Documents directory.
+
+In the future it should probably be made possible to open/create databases in the tmp and Libraries directories.
+
 ## Known Issues
 
 - I'm using events on RCTDeviceEventEmitter to pass back rows from
