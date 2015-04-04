@@ -25,7 +25,7 @@ static dispatch_queue_t AIBSQLiteQueue(void)
         dispatch_set_target_queue(sqliteQueue,
                                   dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
     });
-    
+
     return sqliteQueue;
 }
 
@@ -52,31 +52,48 @@ static dispatch_queue_t AIBSQLiteQueue(void)
 - (void)openFromFilename:(NSString *)filename callback:(RCTResponseSenderBlock)callback
 {
     RCT_EXPORT();
-    
+
     if (!callback) {
         RCTLogError(@"Called openFromFilename without a callback.");
         return;
     }
     dispatch_async(AIBSQLiteQueue(), ^{
+        // TODO: Allow creation of database in Library or tmp
+        // directories. Maybe also add an option to open read-only
+        // direct from the bundle.
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *documentsDirectory = [paths objectAtIndex:0];
         NSString *dbPath = [documentsDirectory stringByAppendingPathComponent:filename];
+
+        if (![[NSFileManager defaultManager] fileExistsAtPath:dbPath]) {
+          // If the db file doesn't exist in the documents directory
+          // but it does exist in the bundle then copy it over now
+          NSString *sourcePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:filename];
+          NSError *error;
+          if ([[NSFileManager defaultManager] fileExistsAtPath:sourcePath]) {
+            [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:dbPath error:&error];
+            if (error != nil) {
+              callback(@[[error localizedDescription], [NSNull null]]);
+            }
+          }
+        }
+
         sqlite3 *db;
         BOOL openDatabaseResult = sqlite3_open([dbPath UTF8String], &db);
         if(openDatabaseResult != SQLITE_OK) {
-            callback(@[@"Couldn't open database", [NSNull null]]);
-            return;
+          callback(@[@"Couldn't open database", [NSNull null]]);
+          return;
         }
         NSString *databaseId = [[NSNumber numberWithInt: nextId++] stringValue];
         [openDatabases setValue:[NSValue valueWithPointer:db] forKey:databaseId];
         callback(@[[NSNull null], databaseId]);
-    });
+      });
 }
 
 - (void)closeDatabase:(NSString *)databaseId callback:(RCTResponseSenderBlock)callback
 {
     RCT_EXPORT();
-    
+
     if (!callback) {
         RCTLogError(@"Called openFromFilename without a callback.");
         return;
@@ -97,11 +114,11 @@ static dispatch_queue_t AIBSQLiteQueue(void)
 - (void)execOnDatabase:(NSString *)databaseId withSQL: (NSString *)sql andParams: (NSArray *)params rowEvent: (NSString *) rowEvent callback:(RCTResponseSenderBlock)callback
 {
     RCT_EXPORT();
-    
+
     if (!callback) {
         RCTLogError(@"Called openFromFilename without a callback.");
     }
-    
+
     dispatch_async(AIBSQLiteQueue(), ^{
         NSValue *database = [openDatabases valueForKey:databaseId];
         if (database == nil) {
@@ -110,13 +127,13 @@ static dispatch_queue_t AIBSQLiteQueue(void)
         }
         sqlite3 *db = (sqlite3*) [database pointerValue];
         sqlite3_stmt *stmt;
-        
+
         int rc = sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL);
         if (rc != SQLITE_OK) {
             callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
             return;
         }
-        
+
         for (int i=0; i < [params count]; i++){
             NSObject *param = [params objectAtIndex: i];
             if ([param isKindOfClass: [NSString class]]) {
@@ -133,7 +150,7 @@ static dispatch_queue_t AIBSQLiteQueue(void)
                 return;
             }
         }
-        
+
         while(1) {
             rc = sqlite3_step(stmt);
             if (rc == SQLITE_ROW) {
@@ -142,7 +159,7 @@ static dispatch_queue_t AIBSQLiteQueue(void)
                 // Go through all columns and fetch each column data.
                 for (int i=0; i<totalColumns; i++){
                     // Convert the column data to text (characters).
-                    
+
                     NSObject *value;
                     NSData *data;
                     switch (sqlite3_column_type(stmt, i)) {
@@ -183,8 +200,7 @@ static dispatch_queue_t AIBSQLiteQueue(void)
         }
         sqlite3_finalize(stmt);
     });
-        
+
 }
 
 @end
-
