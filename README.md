@@ -14,13 +14,9 @@ Written by Thomas Parslow
 Install using npm with `npm install --save react-native-sqlite`
 
 You then need to add the Objective C part to your XCode project. Drag
-`AIBSQLite.xcodeproj` from the `node_modules/react-native-sqlite` into
-your XCode project then click on the your project in XCode, goto
-`Build Phases` then `Link Binary With Libraries` and add
-`libAIBSQLite.a`.
+`AIBSQLite.xcodeproj` from the `node_modules/react-native-sqlite` folder into your XCode projec. Click on the your project in XCode, goto `Build Phases` then `Link Binary With Libraries` and add `libAIBSQLite.a`.
 
-Make sure you don't have the `AIBSQLite` project open seperately in
-XCode otherwise it won't work.
+NOTE: Make sure you don't have the `AIBSQLite` project open seperately in XCode otherwise it won't work.
 
 ## Usage
 
@@ -55,16 +51,15 @@ sqlite.open("filename.sqlite", function (error, database) {
 
 ## Database Location
 
-It will first look for the database filename you give in the Documents directory inside the app sandbox. If it doesn't find anything there it will look in the app bundle and try and copy it to the Documents directory. If it doesn't find the database in either places then it will create a new blank database in Documents directory.
+It will first look for the database filename you give in the `Documents` directory inside the app sandbox. If it doesn't find anything there it will look in the app bundle and try and copy it to the `Documents` directory. If it doesn't find the database in either place then it will create a new blank database in the `Documents` directory.
 
-In the future it should probably be made possible to open/create databases in the tmp and Libraries directories.
+In the future it should probably be made possible to open/create databases in the `tmp` and `Libraries` directories.
 
 ## Known Issues
 
 - I'm using events on RCTDeviceEventEmitter to pass back rows from
   queries, is this the best way to do it?
-- Doesn't supporting reading of BLOB fields right now. I'm not entirely sure what
-  would be the best way to pass back binary data. Maybe Base64?
+- Doesn't support reading of BLOB fields right now. I'm not entirely sure what would be the best way to pass back binary data. Maybe Base64?
 - Database needs to be closed manually. I'm not sure how I could do
   this automatically.
 
