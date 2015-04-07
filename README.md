@@ -14,7 +14,7 @@ Written by Thomas Parslow
 Install using npm with `npm install --save react-native-sqlite`
 
 You then need to add the Objective C part to your XCode project. Drag
-`AIBSQLite.xcodeproj` from the `node_modules/react-native-sqlite` folder into your XCode projec. Click on the your project in XCode, goto `Build Phases` then `Link Binary With Libraries` and add `libAIBSQLite.a`.
+`AIBSQLite.xcodeproj` from the `node_modules/react-native-sqlite` folder into your XCode projec. Click on the your project in XCode, goto `Build Phases` then `Link Binary With Libraries` and add `libAIBSQLite.a` and `libsqlite3.dylib`.
 
 NOTE: Make sure you don't have the `AIBSQLite` project open seperately in XCode otherwise it won't work.
 
