@@ -29,19 +29,29 @@ function Database(databaseName, openCallback) {
 Database.prototype = {
   executeSQL (sql: string, params: Array, rowCallback: (row: Object) => void, completeCallback: (error: ?SQLite3Error) => void) {
     this._addAction(completeCallback, (callback) => {
-      var eventName =  "aibSqliteRow:" + (nextId++);
-      var rowHandler = RCTDeviceEventEmitter.addListener(
-        eventName,
-        rowCallback
-      );
-
-      NativeModules.AIBSQLite.execOnDatabase(this._databaseId, sql, params, eventName, function (error) {
-        rowHandler.remove();
+      NativeModules.AIBSQLite.prepareStatement(this._databaseId, sql, params, (error, statementId) => {
         if (error) {
-          callback(new SQLite3Error(error));
-        } else {
-          callback(null);
+          completeCallback(new SQLite3Error(error));
+          return;
         }
+        var next = () => {
+          NativeModules.AIBSQLite.stepStatement(this._databaseId, statementId, (error, row) => {
+            if (error) {
+              completeCallback(new SQLite3Error(error));
+              return;
+            }
+            if (row === null) {
+              completeCallback(null);
+            } else {
+              try {
+                rowCallback(row);
+              } finally {
+                next();
+              }
+            }
+          });
+        };
+        next();
       });
     });
   },

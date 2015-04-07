@@ -29,6 +29,45 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     return sqliteQueue;
 }
 
+// Private class to hold details of an open database
+@interface Database : NSObject
+@property (readonly) sqlite3 * db;
+@property (readonly) NSMutableDictionary *statements;
+@end
+
+@implementation Database
+@synthesize db = _db;
+@synthesize statements = _statements;
+
+- (id) initWithSqliteDb: (sqlite3 *) db
+{
+    self = [super init];
+    if (self) {
+        _db = db;
+        _statements = [NSMutableDictionary dictionaryWithCapacity: 1];
+    }
+    return self;
+}
+@end
+
+// Private class to hold details of an open database
+@interface Statement : NSObject
+@property (readonly) sqlite3_stmt * stmt;
+@end
+
+@implementation Statement
+@synthesize stmt = _stmt;
+
+- (id) initWithSqliteStmt: (sqlite3_stmt *) stmt
+{
+    self = [super init];
+    if (self) {
+        _stmt = stmt;
+    }
+    return self;
+}
+@end
+
 
 
 @implementation AIBSQLite
@@ -85,7 +124,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
           return;
         }
         NSString *databaseId = [[NSNumber numberWithInt: nextId++] stringValue];
-        [openDatabases setValue:[NSValue valueWithPointer:db] forKey:databaseId];
+        Database *database = [[Database alloc] initWithSqliteDb:db];
+        [openDatabases setValue:database forKey:databaseId];
         callback(@[[NSNull null], databaseId]);
       });
 }
@@ -99,41 +139,51 @@ static dispatch_queue_t AIBSQLiteQueue(void)
         return;
     }
     dispatch_async(AIBSQLiteQueue(), ^{
-        NSValue *database = [openDatabases valueForKey:databaseId];
+        Database *database = [openDatabases valueForKey:databaseId];
         if (database == nil) {
             callback(@[@"No open database found"]);
             return;
         }
-        sqlite3 *db = (sqlite3*) [database pointerValue];
+        
+        // Finalize any remaining statments
+        for (NSString* statementId in [database statements]) {
+            Statement *statement = [[database statements] objectForKey:statementId];
+            sqlite3_stmt *stmt = [statement stmt];
+            // We don't care about errors at this point, or at least there's nothing we can do about them
+            sqlite3_finalize(stmt);
+        }
+        
+        sqlite3 *db = [database db];
         sqlite3_close(db);
+        
         [openDatabases removeObjectForKey: databaseId];
         callback(@[[NSNull null]]);
     });
 }
 
-- (void)execOnDatabase:(NSString *)databaseId withSQL: (NSString *)sql andParams: (NSArray *)params rowEvent: (NSString *) rowEvent callback:(RCTResponseSenderBlock)callback
+- (void)prepareStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback
 {
     RCT_EXPORT();
-
+    
     if (!callback) {
-        RCTLogError(@"Called openFromFilename without a callback.");
+        RCTLogError(@"Called prepareStatement without a callback.");
     }
-
+    
     dispatch_async(AIBSQLiteQueue(), ^{
-        NSValue *database = [openDatabases valueForKey:databaseId];
+        Database *database = [openDatabases valueForKey:databaseId];
         if (database == nil) {
             callback(@[@"No open database found", [NSNull null]]);
             return;
         }
-        sqlite3 *db = (sqlite3*) [database pointerValue];
+        sqlite3 *db = [database db];
         sqlite3_stmt *stmt;
-
+        
         int rc = sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL);
         if (rc != SQLITE_OK) {
             callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
             return;
         }
-
+        
         for (int i=0; i < [params count]; i++){
             NSObject *param = [params objectAtIndex: i];
             if ([param isKindOfClass: [NSString class]]) {
@@ -150,57 +200,118 @@ static dispatch_queue_t AIBSQLiteQueue(void)
                 return;
             }
         }
-
-        while(1) {
-            rc = sqlite3_step(stmt);
-            if (rc == SQLITE_ROW) {
-                int totalColumns = sqlite3_column_count(stmt);
-                NSMutableDictionary *rowData = [NSMutableDictionary dictionaryWithCapacity: totalColumns];
-                // Go through all columns and fetch each column data.
-                for (int i=0; i<totalColumns; i++){
-                    // Convert the column data to text (characters).
-
-                    NSObject *value;
-                    NSData *data;
-                    switch (sqlite3_column_type(stmt, i)) {
-                        case SQLITE_INTEGER:
-                            value = [NSNumber numberWithLongLong: sqlite3_column_int64(stmt, i)];
-                            break;
-                        case SQLITE_FLOAT:
-                            value = [NSNumber numberWithDouble: sqlite3_column_double(stmt, i)];
-                            break;
-                        case SQLITE_NULL:
-                            value = [NSNull null];
-                            break;
-                        case SQLITE_BLOB:
-                            sqlite3_finalize(stmt);
-                            // TODO: How should we support blobs? Maybe base64 encode them?
-                            callback(@[@"BLOBs not supported" ]);
-                            return;
-                            break;
-                        case SQLITE_TEXT:
-                        default:
-                            data = [NSData dataWithBytes: sqlite3_column_blob(stmt, i) length: sqlite3_column_bytes16(stmt, i)];
-                            value = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                            break;
-                    }
-                    char *columnName = (char *)sqlite3_column_name(stmt, i);
-                    // Convert the characters to string.
-                    [rowData setValue: value forKey: [NSString stringWithUTF8String: columnName]];
-                }
-                [_bridge.eventDispatcher sendDeviceEventWithName:rowEvent
-                                                            body:rowData];
-            } else if (rc == SQLITE_DONE) {
-                callback(@[[NSNull null]]);
-                break;
-            } else {
-                callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
-                break;
-            }
-        }
-        sqlite3_finalize(stmt);
+        
+        NSString *statementId = [[NSNumber numberWithInt: nextId++] stringValue];
+        Statement *statement = [[Statement alloc] initWithSqliteStmt: stmt];
+        [[database statements] setValue: statement forKey:statementId];
+        
+        callback(@[[NSNull null], statementId]);
     });
+}
 
+- (void) stepStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback
+{
+    RCT_EXPORT();
+    
+    if (!callback) {
+        RCTLogError(@"Called step without a callback.");
+    }
+    
+    dispatch_async(AIBSQLiteQueue(), ^{
+        Database *database = [openDatabases valueForKey:databaseId];
+        if (database == nil) {
+            callback(@[@"No open database found", [NSNull null]]);
+            return;
+        }
+        Statement *statement = [[database statements] objectForKey:statementId];
+        if (statement == nil) {
+            callback(@[@"No statement found", [NSNull null]]);
+            return;
+        }
+        
+        sqlite3 *db = [database db];
+        sqlite3_stmt *stmt = [statement stmt];
+        
+        int rc = sqlite3_step(stmt);
+        if (rc == SQLITE_ROW) {
+            int totalColumns = sqlite3_column_count(stmt);
+            NSMutableDictionary *rowData = [NSMutableDictionary dictionaryWithCapacity: totalColumns];
+            // Go through all columns and fetch each column data.
+            for (int i=0; i<totalColumns; i++){
+                // Convert the column data to text (characters).
+                
+                NSObject *value;
+                NSData *data;
+                switch (sqlite3_column_type(stmt, i)) {
+                    case SQLITE_INTEGER:
+                        value = [NSNumber numberWithLongLong: sqlite3_column_int64(stmt, i)];
+                        break;
+                    case SQLITE_FLOAT:
+                        value = [NSNumber numberWithDouble: sqlite3_column_double(stmt, i)];
+                        break;
+                    case SQLITE_NULL:
+                        value = [NSNull null];
+                        break;
+                    case SQLITE_BLOB:
+                        sqlite3_finalize(stmt);
+                        // TODO: How should we support blobs? Maybe base64 encode them?
+                        callback(@[@"BLOBs not supported", [NSNull null]]);
+                        return;
+                        break;
+                    case SQLITE_TEXT:
+                    default:
+                        data = [NSData dataWithBytes: sqlite3_column_blob(stmt, i) length: sqlite3_column_bytes16(stmt, i)];
+                        value = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                        break;
+                }
+                char *columnName = (char *)sqlite3_column_name(stmt, i);
+                // Convert the characters to string.
+                [rowData setValue: value forKey: [NSString stringWithUTF8String: columnName]];
+            }
+            callback(@[[NSNull null], rowData]);
+        } else if (rc == SQLITE_DONE) {
+            sqlite3_finalize(stmt);
+            [[database statements] removeObjectForKey: statementId];
+            callback(@[[NSNull null], [NSNull null]]);
+        } else {
+            [[database statements] removeObjectForKey: statementId];
+            sqlite3_finalize(stmt);
+            callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)], [NSNull null]]);
+        }
+    });
+}
+
+- (void)finalizeStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback
+{
+    RCT_EXPORT();
+    
+    if (!callback) {
+        RCTLogError(@"Called step without a callback.");
+    }
+    
+    dispatch_async(AIBSQLiteQueue(), ^{
+        Database *database = [openDatabases valueForKey:databaseId];
+        if (database == nil) {
+            callback(@[@"No open database found", [NSNull null]]);
+            return;
+        }
+        Statement *statement = [[database statements] objectForKey:statementId];
+        if (statement == nil) {
+            callback(@[@"No statement found", [NSNull null]]);
+            return;
+        }
+        
+        sqlite3 *db = [database db];
+        sqlite3_stmt *stmt = [statement stmt];
+        
+        [[database statements] removeObjectForKey: statementId];
+        
+        if (sqlite3_finalize(stmt) == SQLITE_OK) {
+            callback(@[[NSNull null]]);
+        } else {
+            callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
+        }
+    });
 }
 
 @end
