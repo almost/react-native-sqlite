@@ -21,7 +21,7 @@ NOTE: Make sure you don't have the `AIBSQLite` project open seperately in XCode 
 ## Usage
 
 ```javascript
-var sqlite = require('./react-native-sqlite');
+var sqlite = require('react-native-sqlite');
 sqlite.open("filename.sqlite", function (error, database) {
   if (error) {
     console.log("Failed to open database:", error);
