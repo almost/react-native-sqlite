@@ -1,9 +1,10 @@
+// @flow
 var NativeModules = require('react-native').NativeModules;
 var RCTDeviceEventEmitter = require('RCTDeviceEventEmitter');
 
 var nextId = 0;
 
-function SQLite3Error(message) {
+function SQLite3Error(message: any) {
  this.message = message;
 }
 
@@ -27,7 +28,12 @@ function Database(databaseName, openCallback) {
 }
 
 Database.prototype = {
-  executeSQL (sql: string, params: Array, rowCallback: (row: Object) => void, completeCallback: (error: ?SQLite3Error) => void) {
+  executeSQL (
+    sql: string,
+    params: Array<?(number|string)>,
+    rowCallback: ((row: Object) => void),
+    completeCallback: ((error: ?SQLite3Error) => void)
+  ) : void {
     this._addAction(completeCallback, (callback) => {
       NativeModules.AIBSQLite.prepareStatement(this._databaseId, sql, params, (error, statementId) => {
         if (error) {
@@ -92,7 +98,7 @@ Database.prototype = {
 
 module.exports = {
   SQLite3Error: SQLite3Error,
-  open (databaseName: string, callback: ?((error: ?SQLite3Error, database: ?Database) => void) ) {
+  open (databaseName: string, callback: ?((error: ?SQLite3Error, database: ?Database) => void) ) : Database {
     return new Database(databaseName, callback || ((e) => null));
   }
 };
