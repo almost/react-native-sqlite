@@ -76,6 +76,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     int nextId;
 }
 
+RCT_EXPORT_MODULE();
+
 @synthesize bridge = _bridge;
 
 - (id) init
@@ -88,10 +90,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     return self;
 }
 
-- (void)openFromFilename:(NSString *)filename callback:(RCTResponseSenderBlock)callback
+RCT_EXPORT_METHOD(openFromFilename:(NSString *)filename callback:(RCTResponseSenderBlock)callback)
 {
-    RCT_EXPORT();
-
     if (!callback) {
         RCTLogError(@"Called openFromFilename without a callback.");
         return;
@@ -130,10 +130,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
       });
 }
 
-- (void)closeDatabase:(NSString *)databaseId callback:(RCTResponseSenderBlock)callback
+RCT_EXPORT_METHOD(closeDatabase:(NSString *)databaseId callback:(RCTResponseSenderBlock)callback)
 {
-    RCT_EXPORT();
-
     if (!callback) {
         RCTLogError(@"Called openFromFilename without a callback.");
         return;
@@ -161,10 +159,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     });
 }
 
-- (void)prepareStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback
+RCT_EXPORT_METHOD(prepareStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback)
 {
-    RCT_EXPORT();
-    
     if (!callback) {
         RCTLogError(@"Called prepareStatement without a callback.");
     }
@@ -209,10 +205,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     });
 }
 
-- (void) stepStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback
+RCT_EXPORT_METHOD(stepStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback)
 {
-    RCT_EXPORT();
-    
     if (!callback) {
         RCTLogError(@"Called step without a callback.");
     }
@@ -281,10 +275,8 @@ static dispatch_queue_t AIBSQLiteQueue(void)
     });
 }
 
-- (void)finalizeStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback
+RCT_EXPORT_METHOD(finalizeStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback)
 {
-    RCT_EXPORT();
-    
     if (!callback) {
         RCTLogError(@"Called step without a callback.");
     }
