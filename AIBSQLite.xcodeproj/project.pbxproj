@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		E23D7B651ACEFE6500C59171 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E23D7B641ACEFE6500C59171 /* libsqlite3.dylib */; };
 		E25C74971ACEFE95004F0793 /* AIBSQLite.m in Sources */ = {isa = PBXBuildFile; fileRef = E25C74961ACEFE95004F0793 /* AIBSQLite.m */; };
-		E25C74A01ACEFF33004F0793 /* AIBSQLite.h in Headers */ = {isa = PBXBuildFile; fileRef = E25C74951ACEFE95004F0793 /* AIBSQLite.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		E25C74A01ACEFF33004F0793 /* AIBSQLite.h in Headers */ = {isa = PBXBuildFile; fileRef = E25C74951ACEFE95004F0793 /* AIBSQLite.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
