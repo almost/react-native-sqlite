@@ -1,6 +1,6 @@
 // @flow
 var NativeModules = require('react-native').NativeModules;
-var RCTDeviceEventEmitter = require('RCTDeviceEventEmitter');
+var RCTDeviceEventEmitter = require('react-native/Libraries/Device/RCTDeviceEventEmitter');
 
 var nextId = 0;
 
