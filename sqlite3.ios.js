@@ -1,6 +1,5 @@
 // @flow
 var NativeModules = require('react-native').NativeModules;
-var { DeviceEventEmitter } = require('react-native');
 
 var nextId = 0;
 
