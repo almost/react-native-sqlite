@@ -11,6 +11,7 @@ SQLite3Error.prototype = new Error();
 
 function Database(databaseName, openCallback) {
   this._databaseId = null;
+  this._databaseName = databaseName;
   // List of actions pending database connection
   this._pendingActions = [];
 
@@ -27,6 +28,11 @@ function Database(databaseName, openCallback) {
 }
 
 Database.prototype = {
+
+  getName(): string {
+    return this._databaseName;
+  },
+
   executeSQL (
     sql: string,
     params: Array<?(number|string)>,
