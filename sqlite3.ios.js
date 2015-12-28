@@ -33,6 +33,22 @@ Database.prototype = {
     return this._databaseName;
   },
 
+  validateSQL (
+    sql: string,
+    params: Array<?(number|string)>,
+    completeCallback: ((error: ?SQLite3Error) => void)
+  ): void {
+     this._addAction(completeCallback, (callback) => {
+      NativeModules.AIBSQLite.validateStatement(this._databaseId, sql, params, (error) => {
+        if (error) {
+          completeCallback(new SQLite3Error(error));
+          return;
+        }
+        completeCallback(null);
+      });
+    });
+  },
+
   executeSQL (
     sql: string,
     params: Array<?(number|string)>,

@@ -6,7 +6,7 @@
 //
 
 
-#import <RCTBridgeModule.h>
+#import "./node_modules/react-native/React/Base/RCTBridgeModule.h"
 
 @interface AIBSQLite : NSObject <RCTBridgeModule>
 

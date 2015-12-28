@@ -6,11 +6,11 @@
 //
 
 #import "AIBSQLite.h"
-#import "RCTLog.h"
-#import "RCTUtils.h"
+#import "./node_modules/react-native/React/Base/RCTLog.h"
+#import "./node_modules/react-native/React/Base/RCTUtils.h"
 #import <Foundation/Foundation.h>
-#import "RCTBridge.h"
-#import "RCTEventDispatcher.h"
+#import "./node_modules/react-native/React/Base/RCTBridge.h"
+#import "./node_modules/react-native/React/Base/RCTEventDispatcher.h"
 
 #import <sqlite3.h>
 
@@ -159,50 +159,101 @@ RCT_EXPORT_METHOD(closeDatabase:(NSString *)databaseId callback:(RCTResponseSend
     });
 }
 
-RCT_EXPORT_METHOD(prepareStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback)
+RCT_EXPORT_METHOD(validateStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback)
 {
-    if (!callback) {
-        RCTLogError(@"Called prepareStatement without a callback.");
+  if (!callback) {
+    RCTLogError(@"Called prepareStatement without a callback.");
+  }
+  
+  dispatch_async(AIBSQLiteQueue(), ^{
+    Database *database = [openDatabases valueForKey:databaseId];
+    if (database == nil) {
+      callback(@[@"No open database found", [NSNull null]]);
+      return;
     }
     
-    dispatch_async(AIBSQLiteQueue(), ^{
-        Database *database = [openDatabases valueForKey:databaseId];
-        if (database == nil) {
-            callback(@[@"No open database found", [NSNull null]]);
-            return;
-        }
-        sqlite3 *db = [database db];
-        sqlite3_stmt *stmt;
-        
-        int rc = sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL);
-        if (rc != SQLITE_OK) {
-            callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
-            return;
-        }
-        
-        for (int i=0; i < [params count]; i++){
-            NSObject *param = [params objectAtIndex: i];
-            if ([param isKindOfClass: [NSString class]]) {
-                NSString *str = (NSString*) param;
-                int strLength = (int) [str lengthOfBytesUsingEncoding: NSUTF8StringEncoding];
-                sqlite3_bind_text(stmt, i+1, [str UTF8String], strLength, SQLITE_TRANSIENT);
-            } else if ([param isKindOfClass: [NSNumber class]]) {
-                sqlite3_bind_double(stmt, i+1, [(NSNumber *)param doubleValue]);
-            } else if ([param isKindOfClass: [NSNull class]]) {
-                sqlite3_bind_null(stmt, i+1);
-            } else {
-                sqlite3_finalize(stmt);
-                callback(@[@"Parameters must be either numbers or strings" ]);
-                return;
-            }
-        }
-        
-        NSString *statementId = [[NSNumber numberWithInt: nextId++] stringValue];
-        Statement *statement = [[Statement alloc] initWithSqliteStmt: stmt];
-        [[database statements] setValue: statement forKey:statementId];
-        
-        callback(@[[NSNull null], statementId]);
-    });
+    sqlite3 *db = [database db];
+    sqlite3_stmt *stmt;
+    
+    int rc = sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+      callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
+    }
+    
+    for (int i=0; i < [params count]; i++){
+      NSObject *param = [params objectAtIndex: i];
+      if ([param isKindOfClass: [NSString class]]) {
+        NSString *str = (NSString*) param;
+        int strLength = (int) [str lengthOfBytesUsingEncoding: NSUTF8StringEncoding];
+        sqlite3_bind_text(stmt, i+1, [str UTF8String], strLength, SQLITE_TRANSIENT);
+      } else if ([param isKindOfClass: [NSNumber class]]) {
+        sqlite3_bind_double(stmt, i+1, [(NSNumber *)param doubleValue]);
+      } else if ([param isKindOfClass: [NSNull class]]) {
+        sqlite3_bind_null(stmt, i+1);
+      } else {
+        sqlite3_finalize(stmt);
+        callback(@[@"Parameters must be either numbers or strings" ]);
+        return;
+      }
+    }
+
+    // Step once to see if we catch any errors
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_OK) {
+      callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
+      return;
+    }
+    
+    // We are done validating so close out the statement and return success
+    sqlite3_finalize(stmt);
+    callback(@[[NSNull null]]);
+  });
+}
+
+RCT_EXPORT_METHOD(prepareStatement: (NSString *)databaseId sql: (NSString *)sql andParams: (NSArray *)params callback: (RCTResponseSenderBlock)callback)
+{
+  if (!callback) {
+    RCTLogError(@"Called prepareStatement without a callback.");
+  }
+  
+  dispatch_async(AIBSQLiteQueue(), ^{
+    Database *database = [openDatabases valueForKey:databaseId];
+    if (database == nil) {
+      callback(@[@"No open database found", [NSNull null]]);
+      return;
+    }
+    sqlite3 *db = [database db];
+    sqlite3_stmt *stmt;
+    
+    int rc = sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+      callback(@[[NSString stringWithUTF8String:sqlite3_errmsg(db)]]);
+      return;
+    }
+    
+    for (int i=0; i < [params count]; i++){
+      NSObject *param = [params objectAtIndex: i];
+      if ([param isKindOfClass: [NSString class]]) {
+        NSString *str = (NSString*) param;
+        int strLength = (int) [str lengthOfBytesUsingEncoding: NSUTF8StringEncoding];
+        sqlite3_bind_text(stmt, i+1, [str UTF8String], strLength, SQLITE_TRANSIENT);
+      } else if ([param isKindOfClass: [NSNumber class]]) {
+        sqlite3_bind_double(stmt, i+1, [(NSNumber *)param doubleValue]);
+      } else if ([param isKindOfClass: [NSNull class]]) {
+        sqlite3_bind_null(stmt, i+1);
+      } else {
+        sqlite3_finalize(stmt);
+        callback(@[@"Parameters must be either numbers or strings" ]);
+        return;
+      }
+    }
+    
+    NSString *statementId = [[NSNumber numberWithInt: nextId++] stringValue];
+    Statement *statement = [[Statement alloc] initWithSqliteStmt: stmt];
+    [[database statements] setValue: statement forKey:statementId];
+    
+    callback(@[[NSNull null], statementId]);
+  });
 }
 
 RCT_EXPORT_METHOD(stepStatement:(NSString *)databaseId statementId: (NSString *) statementId callback:(RCTResponseSenderBlock)callback)
