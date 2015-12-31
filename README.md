@@ -1,8 +1,8 @@
 # react-native-sqlite
 
-A binding for sqlite3 for React Native. Allows a database to be opened and for SQL queries to be run on it.
+NOTE: This hasn't been maintained for a while and was never very complete to start with. Check out https://github.com/andpor/react-native-sqlite-storage for a more usable library!
 
-Really early version right now, the API might change and I'm still figuring out the best way to do things with React Native.
+A binding for sqlite3 for React Native. Allows a database to be opened and for SQL queries to be run on it.
 
 Written by Thomas Parslow
 ([almostobsolete.net](http://almostobsolete.net) and
